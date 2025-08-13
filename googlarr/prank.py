@@ -25,6 +25,20 @@ def download_poster(plex, item, save_path, config):
             for chunk in response.iter_content(1024):
                 f.write(chunk)
 
+def download_background(plex, item, save_path, config):
+    plex_item = plex.fetchItem(int(item['item_id']))
+    # Use artUrl if available
+    url = getattr(plex_item, 'artUrl', None)
+    if not url:
+        return
+    headers = {'Accept': 'image/jpeg'}
+    response = requests.get(url, headers=headers, stream=True)
+    if response.status_code == 200:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        with open(save_path, 'wb') as f:
+            for chunk in response.iter_content(1024):
+                f.write(chunk)
+
 def generate_prank_poster(original_path, prank_path, config):
 
     global face_detector, overlay_img
@@ -66,4 +80,12 @@ def set_poster(plex_item, image_path):
         raise FileNotFoundError(f"Poster image not found: {image_path}")
 
     plex_item.uploadPoster(filepath=str(image_path))
+
+
+def set_background(plex_item, image_path):
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Background image not found: {image_path}")
+
+    # PlexAPI supports uploading background art via uploadArt
+    plex_item.uploadArt(filepath=str(image_path))
 

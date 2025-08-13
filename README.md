@@ -27,9 +27,9 @@ I highly recommend testing this on a dummy library in Plex before rolling it out
 Googlarr is a scheduled prank daemon that:
 
 1. Scans your Plex libraries for movies and/or shows
-2. Detects faces and eye positions in poster images
+2. Detects faces and eye positions in poster and background (art) images
 3. Applies googly eyes using image overlays
-4. Swaps the posters on a cron-based schedule
+4. Swaps the posters and backgrounds on a cron-based schedule
 5. Restores the originals after the prank window
 
 ---
@@ -76,8 +76,10 @@ plex:
     - TV Shows
 
 paths:
-  originals_dir: data/originals
-  prank_dir: data/prank
+  originals_dir: data/posters/originals
+  prank_dir: data/posters/prank
+  backgrounds_originals_dir: data/backgrounds/originals
+  backgrounds_prank_dir: data/backgrounds/prank
 
 database: "data/googlarr.db"
 
