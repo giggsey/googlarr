@@ -18,7 +18,7 @@ from googlarr.db import (
 from googlarr.prank import download_poster, download_background, generate_prank_poster, set_poster, set_background, initialize_detector_and_overlay
 
 # --- CONFIG ---
-SYNC_INTERVAL_MINUTES = 1
+SYNC_INTERVAL_MINUTES = 60
 POSTER_WORKERS = 1
 BACKGROUND_WORKERS = 1
 
