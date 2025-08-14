@@ -13,7 +13,8 @@ from googlarr.db import (
     claim_next_task,
     update_item_status,
     get_items_for_update,
-    reset_working_tasks
+    reset_working_tasks,
+    update_remote_signature
 )
 from googlarr.prank import download_poster, download_background, generate_prank_poster, set_poster, set_background, initialize_detector_and_overlay
 
@@ -128,6 +129,17 @@ async def update_posters_task(config, plex):
                             set_background(plex_item, item['prank_path'])
                             print(f"[UPDATE] Applied prank background to {item['title']}")
                         update_item_status(config['database'], item['item_id'], kind, 'PRANK_APPLIED')
+                        # Refresh and persist new remote signature to avoid false change detection on restart
+                        for _ in range(3):
+                            await asyncio.sleep(1)
+                            try:
+                                refreshed = plex.fetchItem(int(item['item_id']))
+                                sig = getattr(refreshed, 'thumb' if kind == 'poster' else 'art', None)
+                                if sig:
+                                    update_remote_signature(config['database'], item['item_id'], kind, sig)
+                                    break
+                            except Exception:
+                                pass
 
                     elif action == "restore" and item['status'] == 'PRANK_APPLIED':
                         if kind == 'poster':
@@ -137,6 +149,17 @@ async def update_posters_task(config, plex):
                             set_background(plex_item, item['original_path'])
                             print(f"[UPDATE] Restored original background for {item['title']}")
                         update_item_status(config['database'], item['item_id'], kind, 'PRANK_GENERATED')
+                        # Refresh and persist original remote signature to avoid false change detection on restart
+                        for _ in range(3):
+                            await asyncio.sleep(1)
+                            try:
+                                refreshed = plex.fetchItem(int(item['item_id']))
+                                sig = getattr(refreshed, 'thumb' if kind == 'poster' else 'art', None)
+                                if sig:
+                                    update_remote_signature(config['database'], item['item_id'], kind, sig)
+                                    break
+                            except Exception:
+                                pass
 
                 except Exception as e:
                     print(f"[UPDATE] Error updating {kind} for {item['title']}: {e}")

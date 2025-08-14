@@ -72,21 +72,29 @@ def sync_library_with_plex(config, plex):
                     return
                 existing_sig = row["remote_signature"]
                 if existing_sig != signature:
-                    # Detected artwork change — reset to NEW, update signature, remove cached files
-                    print(f"[SYNC] Detected artwork change for {title} ({kind}). Re-queuing for re-prank.")
-                    # Remove cached files if any
-                    try:
-                        if row["original_path"] and os.path.exists(row["original_path"]):
-                            os.remove(row["original_path"])
-                    except Exception:
-                        pass
-                    try:
-                        if row["prank_path"] and os.path.exists(row["prank_path"]):
-                            os.remove(row["prank_path"])
-                    except Exception:
-                        pass
-                    c.execute("UPDATE library_items SET status = 'NEW', remote_signature = ?, title = ?, library = ?, original_path = ?, prank_path = ? WHERE item_id = ? AND kind = ?",
-                              (signature, title, lib_name, original_path, prank_path, item_id, kind))
+                    status = row["status"]
+                    # Only treat as a real change when in baseline states (originals active / ready)
+                    baseline_states = ("NEW", "ORIGINAL_DOWNLOADED", "PRANK_GENERATED")
+                    if status in baseline_states:
+                        print(f"[SYNC] Detected artwork change for {title} ({kind}) in state {status}. Re-queuing for re-prank.")
+                        # Remove cached files if any
+                        try:
+                            if row["original_path"] and os.path.exists(row["original_path"]):
+                                os.remove(row["original_path"])
+                        except Exception:
+                            pass
+                        try:
+                            if row["prank_path"] and os.path.exists(row["prank_path"]):
+                                os.remove(row["prank_path"])
+                        except Exception:
+                            pass
+                        c.execute("UPDATE library_items SET status = 'NEW', remote_signature = ?, title = ?, library = ?, original_path = ?, prank_path = ? WHERE item_id = ? AND kind = ?",
+                                  (signature, title, lib_name, original_path, prank_path, item_id, kind))
+                    else:
+                        # Change observed while we applied prank or during work; just track the new signature,
+                        # but do not reset work queue.
+                        c.execute("UPDATE library_items SET remote_signature = ?, title = ?, library = ?, original_path = ?, prank_path = ? WHERE item_id = ? AND kind = ?",
+                                  (signature, title, lib_name, original_path, prank_path, item_id, kind))
 
             for item in library.all():
                 item_id = str(item.ratingKey)
@@ -198,6 +206,13 @@ def update_item_status(db_path, item_id, kind, new_status):
     with sqlite3.connect(db_path) as conn:
         c = conn.cursor()
         c.execute("UPDATE library_items SET status = ? WHERE item_id = ? AND kind = ?", (new_status, item_id, kind))
+        conn.commit()
+
+
+def update_remote_signature(db_path, item_id, kind, signature):
+    with sqlite3.connect(db_path) as conn:
+        c = conn.cursor()
+        c.execute("UPDATE library_items SET remote_signature = ? WHERE item_id = ? AND kind = ?", (signature, item_id, kind))
         conn.commit()
 
 
