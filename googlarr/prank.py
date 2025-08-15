@@ -96,8 +96,8 @@ def refresh_artwork(plex_item):
     and lets Plex/agents select artwork again.
     """
     try:
-        # Force agent refresh; Plex will re-query providers and may change posters/backgrounds
-        plex_item.refresh(force=True)
+        # Call refresh without unsupported arguments for broader PlexAPI compatibility
+        plex_item.refresh()
     except Exception as e:
         print(f"[PRANK] Failed to refresh artwork: {e}")
 
@@ -105,15 +105,33 @@ def refresh_artwork(plex_item):
 def clear_artwork(plex_item, kind: str):
     """
     Clear current artwork so Plex can choose defaults again.
-    Calls the PlexAPI methods directly for the known environment and falls back to a refresh on error.
+    - Prefer native PlexAPI methods when available (editPoster/editThumb/editArt).
+    - Otherwise, unlock the relevant field and refresh so agents can repopulate.
+    Always finish with a refresh() that is compatible across PlexAPI versions.
     """
     try:
         if kind == 'poster':
-            plex_item.editPoster(None)
+            if hasattr(plex_item, 'editPoster'):
+                plex_item.editPoster(None)
+            elif hasattr(plex_item, 'editThumb'):
+                plex_item.editThumb(None)
+            else:
+                # Fallback: unlock poster field to allow agents to update
+                try:
+                    plex_item.edit(**{'thumb.locked': 0})
+                except Exception:
+                    pass
         else:
-            plex_item.editArt(None)
+            if hasattr(plex_item, 'editArt'):
+                plex_item.editArt(None)
+            else:
+                # Fallback: unlock background art field
+                try:
+                    plex_item.edit(**{'art.locked': 0})
+                except Exception:
+                    pass
 
-        # After edit, attempt to reload/refresh metadata to apply
+        # After change/unlock, attempt to reload and refresh to apply
         try:
             plex_item.reload()
         except Exception:
