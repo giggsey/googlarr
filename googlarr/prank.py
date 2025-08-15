@@ -89,3 +89,40 @@ def set_background(plex_item, image_path):
     # PlexAPI supports uploading background art via uploadArt
     plex_item.uploadArt(filepath=str(image_path))
 
+
+def refresh_artwork(plex_item):
+    """
+    Ask Plex to refresh metadata/artwork for the item. This avoids using any local files
+    and lets Plex/agents select artwork again.
+    """
+    try:
+        # Force agent refresh; Plex will re-query providers and may change posters/backgrounds
+        plex_item.refresh(force=True)
+    except Exception as e:
+        print(f"[PRANK] Failed to refresh artwork: {e}")
+
+
+def clear_artwork(plex_item, kind: str):
+    """
+    Clear current artwork so Plex can choose defaults again.
+    Calls the PlexAPI methods directly for the known environment and falls back to a refresh on error.
+    """
+    try:
+        if kind == 'poster':
+            plex_item.editPoster(None)
+        else:
+            plex_item.editArt(None)
+
+        # After edit, attempt to reload/refresh metadata to apply
+        try:
+            plex_item.reload()
+        except Exception:
+            pass
+        try:
+            plex_item.refresh()
+        except Exception:
+            pass
+    except Exception as e:
+        print(f"[PRANK] Failed to clear artwork ({kind}): {e}. Falling back to refresh.")
+        return refresh_artwork(plex_item)
+

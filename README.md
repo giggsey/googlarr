@@ -53,6 +53,21 @@ Googlarr is a scheduled prank daemon that:
 5. `docker compose up -d`
 6. Cross your fingers
 
+### Resetting the prank (let Plex re-fetch artwork and wipe cache)
+
+If you want to immediately stop the prank and allow Plex to re-select posters and backgrounds from its metadata agents (without using any local original images) — and wipe the local prank image cache so it will be re-generated next time — run the reset command via Docker Compose:
+
+```
+docker compose run --rm googlarr python -m googlarr.reset
+```
+
+What this does:
+- Triggers a Plex metadata refresh for each item so Plex’s agents re-fetch/select posters and backgrounds. No local original images are uploaded.
+- Clears the local prank cache folders (`data/posters/prank` and `data/backgrounds/prank`) so images are regenerated on the next run.
+- Resets internal state so items are ready to be prankified again when the schedule triggers.
+
+Note: Artwork changes are subject to your Plex agent settings; if artwork fields are locked in Plex, you may need to unlock them for agents to update on refresh.
+
 ---
 
 ## Setup details

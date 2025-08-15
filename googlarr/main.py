@@ -15,7 +15,7 @@ from googlarr.db import (
     get_items_for_update,
     reset_working_tasks
 )
-from googlarr.prank import download_poster, download_background, generate_prank_poster, set_poster, set_background, initialize_detector_and_overlay
+from googlarr.prank import download_poster, download_background, generate_prank_poster, set_poster, set_background, initialize_detector_and_overlay, refresh_artwork, clear_artwork
 
 # --- CONFIG ---
 SYNC_INTERVAL_MINUTES = 60
@@ -130,12 +130,9 @@ async def update_posters_task(config, plex):
                         update_item_status(config['database'], item['item_id'], kind, 'PRANK_APPLIED')
 
                     elif action == "restore" and item['status'] == 'PRANK_APPLIED':
-                        if kind == 'poster':
-                            set_poster(plex_item, item['original_path'])
-                            print(f"[UPDATE] Restored original poster for {item['title']}")
-                        else:
-                            set_background(plex_item, item['original_path'])
-                            print(f"[UPDATE] Restored original background for {item['title']}")
+                        # Clear artwork so Plex can re-select defaults/agent-provided images.
+                        clear_artwork(plex_item, kind)
+                        print(f"[UPDATE] Cleared {kind} so Plex can re-fetch for {item['title']}")
                         update_item_status(config['database'], item['item_id'], kind, 'PRANK_GENERATED')
 
                 except Exception as e:
