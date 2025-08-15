@@ -72,6 +72,10 @@ def sync_library_with_plex(config, plex):
                     return
                 existing_sig = row["remote_signature"]
                 if existing_sig != signature:
+                    # Only consider artwork change if prank is NOT currently applied
+                    if row["status"] == 'PRANK_APPLIED':
+                        print(f"[SYNC] Artwork change detected for {title} ({kind}) but prank is applied; deferring until restore.")
+                        return
                     # Detected artwork change — reset to NEW, update signature, remove cached files
                     print(f"[SYNC] Detected artwork change for {title} ({kind}). Re-queuing for re-prank.")
                     # Remove cached files if any
